@@ -92,7 +92,7 @@ func shouldStrip(b byte) bool {
 // Verify that a hit is a false positive
 func findFalsePositive(hit Hit) (isFP bool) {
 	var scan bool
-	if rules, ok := FalsePositiveRules[hit.Code]; ok { //Veriy a false positive rule exists for this hit code
+	if rules, ok := FalsePositiveRules[hit.Code]; ok { //Verify a false positive rule exists for this hit code
 		for _, rule := range rules.FalsePositives {
 			scan = true
 			if len(rule.FileExtensions) > 0 { //Check if this rule only applies to certain files

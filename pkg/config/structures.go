@@ -16,7 +16,12 @@
 
 package cfgreader
 
-import "regexp"
+import (
+	"embed"
+	"io/fs"
+	"os"
+	"regexp"
+)
 
 //ServerConfig is the timeout configuration for the Earlybird REST API server
 type ServerConfig struct {
@@ -68,42 +73,61 @@ type ModuleConfigs struct {
 
 //EarlybirdConfig is the overall scan configs from config file and cli params
 type EarlybirdConfig struct {
-	AvailableModules           []string
-	RuleModulesFilenameMap     map[string]string
-	SearchDir                  string
-	Gitrepo                    string
-	TargetType                 string
-	EnabledModulesMap          map[string]string
-	EnabledModules             []string
-	OutputFormat               string
-	OutputFile                 string
-	IgnoreFile                 string
-	SeverityFailLevel          int
-	SeverityDisplayLevel       int
-	ConfidenceFailLevel        int
-	ConfidenceDisplayLevel     int
-	ConfigDir                  string
-	RulesConfigDir             string
-	FalsePositivesConfigDir    string
-	SolutionsConfigDir         string
-	LabelsConfigDir            string
-	LevelMap                   map[string]int
-	Suppress                   bool
-	VerboseEnabled             bool
-	GitStream                  bool
-	MaxFileSize                int64
-	ShowFullLine               bool
-	FailScan                   bool
-	RulesOnly                  bool
-	ExtensionsToSkipScan       []string
-	AnnotationsToSkipLine      []string
-	SkipComments               bool
-	IgnoreFPRules              bool
-	ShowSolutions              bool
-	Version                    string
-	WorkerCount                int
-	WorkLength                 int
-	HideMeta                   bool
-	ModuleConfigs              ModuleConfigs
-	AdjustedSeverityCategories []AdjustedSeverityCategory
+	AvailableModules               []string
+	RuleModulesFilenameMap         map[string]string
+	SearchDir                      string
+	Gitrepo                        string
+	TargetType                     string
+	EnabledModulesMap              map[string]string
+	EnabledModules                 []string
+	OutputFormat                   string
+	OutputFile                     string
+	IgnoreFile                     string
+	SeverityFailLevel              int
+	SeverityDisplayLevel           int
+	ConfidenceFailLevel            int
+	ConfidenceDisplayLevel         int
+	ConfigFS                       fs.FS
+	DefaultRulesConfigDir          string
+	DefaultFalsePositivesConfigDir string
+	DefaultSolutionsConfigDir      string
+	DefaultLabelsConfigDir         string
+	ConfigDir                      string
+	RulesConfigDir                 string
+	FalsePositivesConfigDir        string
+	SolutionsConfigDir             string
+	LabelsConfigDir                string
+	LevelMap                       map[string]int
+	Suppress                       bool
+	VerboseEnabled                 bool
+	GitStream                      bool
+	MaxFileSize                    int64
+	ShowFullLine                   bool
+	FailScan                       bool
+	RulesOnly                      bool
+	ExtensionsToSkipScan           []string
+	AnnotationsToSkipLine          []string
+	SkipComments                   bool
+	IgnoreFPRules                  bool
+	ShowSolutions                  bool
+	Version                        string
+	WorkerCount                    int
+	WorkLength                     int
+	HideMeta                       bool
+	ModuleConfigs                  ModuleConfigs
+	AdjustedSeverityCategories     []AdjustedSeverityCategory
+}
+
+//OsFS represents the operating systems filesystem
+type OsFS struct {
+	fs.FS
+}
+
+// Implements the FS interface which simply wraps the `os.Open` method
+func (OsFS) Open(name string) (*os.File, error) { return os.Open(name) }
+
+type Parent struct {
+	embed.FS
+	fsFS fs.FS
+	osFS OsFS
 }

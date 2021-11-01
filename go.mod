@@ -1,6 +1,6 @@
 module github.com/americanexpress/earlybird
 
-go 1.12
+go 1.16
 
 require (
 	github.com/dghubble/sling v1.3.0

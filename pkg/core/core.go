@@ -18,8 +18,10 @@ package core
 
 import (
 	"bufio"
+	"embed"
 	"flag"
 	"fmt"
+	"io/fs"
 	"log"
 	"net/http"
 	"os"
@@ -40,6 +42,8 @@ import (
 	"github.com/gorilla/mux"
 	"golang.org/x/net/http2"
 )
+
+var DefaultConfigFS embed.FS
 
 //GitClone clones git repositories into a temporary directory
 func (eb *EarlybirdCfg) GitClone(ptr PTRGitConfig) {
@@ -107,7 +111,7 @@ func (eb *EarlybirdCfg) StartHTTP(ptr PTRHTTPConfig) {
 	}
 
 	if *ptr.HTTPConfig != "" {
-		err := cfgreader.LoadConfig(&serverconfig, *ptr.HTTPConfig)
+		err := cfgreader.LoadConfig(&serverconfig, *ptr.HTTPConfig, eb.Config.ConfigFS)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -139,23 +143,23 @@ func (eb *EarlybirdCfg) StartHTTP(ptr PTRHTTPConfig) {
 // GetRuleModulesMap walks the `rules` directory and creates a hash map of module name to the filename
 // for example { content: 'content.json', ccnumber: 'ccnumber.json' },
 // and generates a list of the available modules in the `rules` directory
-func (eb *EarlybirdCfg) GetRuleModulesMap() (err error) {
+func (eb *EarlybirdCfg) GetRuleModulesMap(ConfigFS fs.FS) (err error) {
 	rulesPath := filepath.Join(eb.Config.ConfigDir, "rules")
 
 	eb.Config.RuleModulesFilenameMap = make(map[string]string)
 
-	err = filepath.Walk(rulesPath, func(path string, info os.FileInfo, err error) error {
-		if info.IsDir() {
+	rulesModules, err := fs.ReadDir(ConfigFS, rulesPath)
+
+	for _, module := range rulesModules {
+		if module.IsDir() {
 			return nil
 		}
 
-		moduleName := strings.TrimSuffix(info.Name(), filepath.Ext(info.Name()))
-
-		eb.Config.RuleModulesFilenameMap[moduleName] = info.Name()
+		moduleName := strings.TrimSuffix(module.Name(), filepath.Ext(module.Name()))
+		eb.Config.RuleModulesFilenameMap[moduleName] = module.Name()
 		eb.Config.AvailableModules = append(eb.Config.AvailableModules, moduleName)
+	}
 
-		return nil
-	})
 	return err
 }
 
@@ -168,12 +172,23 @@ func (eb *EarlybirdCfg) ConfigInit() {
 	// Load Earlybird config
 	eb.Config.ConfigDir = *ptrConfigDir
 	earlybirdConfigPath := path.Join(eb.Config.ConfigDir, "earlybird.json")
-	err := cfgreader.LoadConfig(&cfgreader.Settings, earlybirdConfigPath)
+	fmt.Println("EARLYBIRD CONFIG PATH", earlybirdConfigPath)
+
+	eb.Config.ConfigFS = DefaultConfigFS
+	// config type must be the same
+	//if earlybirdConfigPath == "config" {
+	//	eb.Config.ConfigFS = DefaultConfigFS
+	//} else {
+	//	eb.Config.ConfigFS = SomeOtherConfig
+	//}
+
+	err := cfgreader.LoadConfig(&cfgreader.Settings, earlybirdConfigPath, eb.Config.ConfigFS)
+
 	if err != nil {
 		log.Fatal("failed to load Earlybird config", err)
 	}
 
-	err = eb.GetRuleModulesMap()
+	err = eb.GetRuleModulesMap(eb.Config.ConfigFS)
 	if err != nil {
 		log.Fatal("error getting rule modules", err)
 	}
@@ -241,7 +256,7 @@ func (eb *EarlybirdCfg) ConfigInit() {
 
 // Load module config if user has passed a config file for individual modules with -module-config-file flag
 func (eb *EarlybirdCfg) LoadModuleConfig(moduleConfigFilePath string) {
-	err := cfgreader.LoadConfig(&eb.Config.ModuleConfigs, moduleConfigFilePath)
+	err := cfgreader.LoadConfig(&eb.Config.ModuleConfigs, moduleConfigFilePath, eb.Config.ConfigFS)
 
 	if err != nil {
 		log.Fatal("Error loading module config file", err)

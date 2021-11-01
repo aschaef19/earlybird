@@ -17,6 +17,7 @@
 package main
 
 import (
+	"embed"
 	"flag"
 	"os"
 
@@ -31,6 +32,9 @@ var (
 	gitcfg core.PTRGitConfig
 )
 
+//go:embed config/*
+var defaultConfigFS embed.FS
+
 func main() {
 	//Define HTTP server cli params
 	ptr.HTTP = flag.String("http", "", "Listen IP and Port for HTTP API e.g. 127.0.0.1:8080")
@@ -44,6 +48,7 @@ func main() {
 	gitcfg.RepoUser = flag.String("git-user", os.Getenv("gituser"), "If the git repository is private, enter an authorized username")
 
 	//Load CLI params and Earlybird config
+	core.DefaultConfigFS = defaultConfigFS
 	eb.ConfigInit()
 
 	//Load in the rules

@@ -20,7 +20,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	"os"
 	"unicode"
 
 	"github.com/ghodss/yaml"
@@ -30,8 +29,8 @@ import (
 var Settings Configs
 
 //LoadConfig parses json configuration file into structure
-func LoadConfig(cfg interface{}, path string) (err error) {
-	file, err := os.Open(path)
+func LoadConfig(cfg interface{}, path string, filesystem fs.FS) (err error) {
+	file, err := filesystem.Open(path)
 	// if we os.Open returns an error then handle it
 	if err != nil {
 		return err

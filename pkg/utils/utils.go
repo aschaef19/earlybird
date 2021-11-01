@@ -78,6 +78,12 @@ func GetConfigDir() (configDir string) {
 			configDir += overrideDir
 		}
 		configDir = userHomeDir + configDir
+
+		// if directory does not exist, use embedded default config
+		if _, err := os.Stat(configDir); os.IsNotExist(err) {
+			log.Println("Local config directory not found, using default config")
+			configDir = ebDefaultConf
+		}
 	}
 	return configDir
 }
@@ -112,7 +118,7 @@ func GetTargetType(GitStagedFlag, GitTrackedFlag bool) (targetType string) {
 	return targetType
 }
 
-// GetEnabledModulesMap returns a map of module name to filename enabled by default or explicitly defined with CLI paramters
+// GetEnabledModulesMap returns a map of module name to filename enabled by default or explicitly defined with CLI parameters
 func GetEnabledModulesMap(enableFlags []string, availableModules map[string]string) (enabledModules map[string]string) {
 	enabledModules = make(map[string]string)
 

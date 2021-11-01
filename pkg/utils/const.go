@@ -20,6 +20,7 @@ const (
 	errInvalidPath   string = "Invalid Path. Exiting."
 	ebConfFileDir    string = ".go-earlybird"
 	ebConfFileName   string = "earlybird.json"
+	ebDefaultConf    string = "config"
 	ebWinConfFileDir string = "\\AppData\\go-earlybird\\"
 	gitHTTP          string = "http://"
 	gitHTTPS         string = "https://"

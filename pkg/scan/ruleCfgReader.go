@@ -18,6 +18,7 @@ package scan
 
 import (
 	"fmt"
+	"io/fs"
 	"log"
 	"os"
 	"path"
@@ -48,7 +49,7 @@ func Init(cfg cfgreader.EarlybirdConfig) {
 	var err error
 	//Load solutions for the rules
 	if cfg.ShowSolutions {
-		SolutionConfigs, err = loadSolutions(cfg.SolutionsConfigDir)
+		SolutionConfigs, err = loadSolutions(cfg)
 
 		if err != nil {
 			log.Fatal("error loading solutions", err)
@@ -56,14 +57,14 @@ func Init(cfg cfgreader.EarlybirdConfig) {
 	}
 
 	// Init label configs
-	Labels, err = loadLabelConfigs(cfg.LabelsConfigDir)
+	Labels, err = loadLabelConfigs(cfg)
 
 	if err != nil {
 		log.Fatal("error loading labels file")
 	}
 
 	//Load false positive rules
-	FalsePositiveRules, err = loadFalsePositives(cfg.FalsePositivesConfigDir)
+	FalsePositiveRules, err = loadFalsePositives(cfg)
 
 	if err != nil {
 		log.Fatal("error loading false positive rules", err)
@@ -118,7 +119,8 @@ func loadRuleConfigs(cfg cfgreader.EarlybirdConfig, moduleName, fileName string)
 	var rules, tmpRules Rules
 	rulePath := path.Join(cfg.RulesConfigDir, fileName)
 
-	err := cfgreader.LoadConfig(&tmpRules, rulePath)
+	err := cfgreader.LoadConfig(&tmpRules, rulePath, cfg.ConfigFS)
+
 	if err != nil {
 		log.Println("Failed to load rules file", err)
 	}
@@ -138,16 +140,16 @@ func loadRuleConfigs(cfg cfgreader.EarlybirdConfig, moduleName, fileName string)
 }
 
 //loadLabelConfigs loads the labels from the config file
-func loadLabelConfigs(dirPath string) (LabelConfigRules map[int]LabelConfigs, err error) {
+func loadLabelConfigs(cfg cfgreader.EarlybirdConfig) (LabelConfigRules map[int]LabelConfigs, err error) {
 	LabelConfigRules = make(map[int]LabelConfigs)
 
-	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+	err = fs.WalkDir(cfg.ConfigFS, cfg.LabelsConfigDir, func(path string, info fs.DirEntry, err error) error {
 		if info.IsDir() {
 			return nil
 		}
 
 		var tmpRules LabelConfigs
-		err = cfgreader.LoadConfig(&tmpRules, path)
+		err = cfgreader.LoadConfig(&tmpRules, path, cfg.ConfigFS)
 		if err != nil {
 			log.Fatal("Failed to load labels file", err)
 		}
@@ -167,16 +169,16 @@ func loadLabelConfigs(dirPath string) (LabelConfigRules map[int]LabelConfigs, er
 }
 
 //loadFalsePositives loads in and compiles all the false positive rules for Earlybird
-func loadFalsePositives(dirPath string) (FalsePositiveRules map[int]FalsePositives, err error) {
+func loadFalsePositives(cfg cfgreader.EarlybirdConfig) (FalsePositiveRules map[int]FalsePositives, err error) {
 	FalsePositiveRules = make(map[int]FalsePositives)
 
-	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+	err = fs.WalkDir(cfg.ConfigFS, cfg.FalsePositivesConfigDir, func(path string, info fs.DirEntry, err error) error {
 		if info.IsDir() {
 			return nil
 		}
 
 		var tmpRules FalsePositives
-		err = cfgreader.LoadConfig(&tmpRules, path)
+		err = cfgreader.LoadConfig(&tmpRules, path, cfg.ConfigFS)
 		if err != nil {
 			log.Fatal("Failed to load false positives file ", path, err)
 		}
@@ -197,16 +199,16 @@ func loadFalsePositives(dirPath string) (FalsePositiveRules map[int]FalsePositiv
 }
 
 //loadSolutions loads in solutions from the json config file
-func loadSolutions(dirPath string) (solutionConfigs map[int]Solution, err error) {
+func loadSolutions(cfg cfgreader.EarlybirdConfig) (solutionConfigs map[int]Solution, err error) {
 	solutionConfigs = make(map[int]Solution)
 
-	err = filepath.Walk(dirPath, func(path string, info os.FileInfo, err error) error {
+	err = fs.WalkDir(cfg.ConfigFS, cfg.SolutionsConfigDir, func(path string, info fs.DirEntry, err error) error {
 		if info.IsDir() {
 			return nil
 		}
 
 		var tmp Solutions
-		err = cfgreader.LoadConfig(&tmp, path)
+		err = cfgreader.LoadConfig(&tmp, path, cfg.ConfigFS)
 		if err != nil {
 			log.Fatal("Failed to load solutions file", err)
 		}
